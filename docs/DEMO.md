@@ -1,5 +1,22 @@
 # Demonstration and remaining validation
 
+## Recorded demo: November 13, 2026
+
+The local deliverable is `output/video/leancode-demo.mp4`: a narrated, captioned 1080p walkthrough of the real application, edited for pace. Its original browser captures, subtitle file, edit decisions, and JSON run evidence remain in the ignored `output/video/` directory; credentials remain under ignored `.leancode/`.
+
+The public synthetic boundary task completed through Gemini/Bifrost with a real Tavily lookup, six model calls, 6,448 reported tokens, and 10,397 micro-USD in the conservative ledger. The approved test passed, followed by two passing tests in the independent acceptance run. Confidential inference without an allowed local model and a zero-budget request both ended blocked with zero model calls. The recording exposed and fixed a worker lookup bug affecting accounts other than `local`; owner checks at HTTP endpoints remain enforced.
+
+This is one task, not a comparative token-savings benchmark or a cross-provider failover demonstration. Offline confidential task completion is not demonstrated.
+
+To record again on macOS:
+
+1. Build with `npm --prefix frontend run build` and install the frontend's Playwright Chromium/FFmpeg binaries.
+2. Run `.venv/bin/python scripts/demo_backend.py` in one terminal. It creates disposable copies of the fixture, an isolated database, and a $0.10 recording-account cap. Port 8002 must be free. Calls use the real configured providers and can spend credit.
+3. Run `node scripts/record_demo.mjs`. If using a non-default cached Chromium, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to its executable path. The script approves only the expected one-line fixture patch and exact unittest command, then verifies both guardrails. It stops on unexpected results.
+4. Set `FFMPEG` to a full FFmpeg executable with libx264, AAC and drawtext support, then run `.venv/bin/python scripts/render_demo.py`. Narration uses the macOS Samantha voice. Rendering uses the saved edit decisions and asserts the recorded claims before encoding.
+
+The final delivered cut selects readable portions of the original capture and uses a replacement budget shot recorded after the worker fix. The exact source filenames and ranges are preserved in `chapters.json`. Stop the isolated server after recording; the normal application on ports 5173/8000 is separate.
+
 ## What has been checked
 
 - Backend tests: approvals, ownership, paths, concurrent budgets, privacy filtering, simulated failover, restart protection, context preservation, and cache invalidation.

@@ -13,3 +13,4 @@ benchmarks/results/
 playwright-report/
 test-results/
 *.tsbuildinfo
+output/video/
