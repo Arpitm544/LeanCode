@@ -542,3 +542,20 @@ button:disabled { cursor: not-allowed; opacity: .45; }
   .dw-workflow-card h3 { font-size: 12px; }
   .dw-workflow-card p { font-size: 10px; line-height: 1.6; }
 }
+
+/* LeanCode identity within the supplied workspace layout. */
+.dw-project-brand { display: flex; flex-direction: column; gap: 4px; font-size: 15px; letter-spacing: -.3px; }
+.dw-project-brand small { font-size: 10px; font-weight: 400; color: #999; letter-spacing: 0; }
+.dw-project-eyebrow { font-size: 8px; font-family: "SFMono-Regular", Consolas, monospace; letter-spacing: 1.25px; color: #a28c7a; margin-bottom: 12px !important; }
+.dw-landing-view .dw-title { font-size: 31px; }
+.dw-landing-view .dw-subtitle { font-size: 12px; line-height: 1.8; }
+@media (max-width: 700px) {
+  .dw-project-eyebrow { font-size: 6px; letter-spacing: .7px; margin-bottom: 10px !important; }
+  .dw-landing-view .dw-title { font-size: 26px; }
+  .dw-landing-view .dw-subtitle { font-size: 10px; }
+}
+@media (max-height: 800px) and (min-width: 701px) {
+  .dw-scope:not(.dw-chat-active) .dw-scrollable-area { padding-top: 15px; }
+  .dw-landing-view .dw-main-icon { margin-bottom: 9px; }
+  .dw-project-eyebrow { margin-bottom: 9px !important; }
+}

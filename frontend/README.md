@@ -2,6 +2,8 @@
 
 React, TypeScript, Vite, and Tailwind CSS are already installed. The application uses the supplied Cue Foundations `cue102` Minimal AI Dev Workspace design, adapted to the existing live backend.
 
+The interface is personalized for LeanCode: Arpit's workspace, The Workbench, active tasks, task history, and token benchmarks. Suggestions focus on small fixes, edge-case coverage, and safe refactors. Savings remain an evidence-based benchmark result rather than an invented marketing figure; costs and budgets come from the backend.
+
 - Component: `src/components/ui/cue-minimal-ai-dev-workspace.tsx`.
 - Styles: `src/styles.css`, with the supplied `dw-*` scoped design classes.
 - Entry/demo: `src/App.tsx` renders the integrated component.
