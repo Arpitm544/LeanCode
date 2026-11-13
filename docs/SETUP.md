@@ -109,4 +109,4 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Stop your development servers before running browser tests: they start their own servers on ports 8000 and 5173. The browser test uses scripted replies against a disposable fixture and real Docker execution; it does not contact a live model. Screenshots are saved under `frontend/test-results/`.
+Browser tests use isolated servers on ports 8001 and 5174, leaving your live development session running. The test backend accepts only its own local browser origin. The browser test uses scripted replies against a disposable fixture and real Docker execution; it does not contact a live model. Screenshots are saved under `frontend/test-results/`.

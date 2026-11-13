@@ -42,7 +42,8 @@ def main():
             store.update(session_id, model="Scripted browser test")
             agents[session_id].run(session_id)
 
-        uvicorn.run(create_app(settings, runner=run), host="127.0.0.1", port=8000, log_level="warning")
+        uvicorn.run(create_app(settings, runner=run, browser_origins=("http://127.0.0.1:5174",)),
+                    host="127.0.0.1", port=8001, log_level="warning")
 
 
 if __name__ == "__main__":

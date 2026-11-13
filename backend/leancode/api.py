@@ -29,7 +29,9 @@ class Decision(BaseModel):
     approve: StrictBool
 
 
-def create_app(settings=None, runner=None):
+def create_app(settings=None, runner=None, *, browser_origins=(
+    "http://127.0.0.1:5173", "http://localhost:5173", "http://127.0.0.1:8000", "http://localhost:8000"
+)):
     settings = settings or Settings.load()
     store = Store(settings.data_dir / "leancode.sqlite3")
     runner = runner or Agent(settings, store).run
@@ -52,8 +54,7 @@ def create_app(settings=None, runner=None):
     @app.middleware("http")
     async def local_origin(request, call_next):
         origin = request.headers.get("origin")
-        if origin and origin not in {"http://127.0.0.1:5173", "http://localhost:5173",
-                                     "http://127.0.0.1:8000", "http://localhost:8000"}:
+        if origin and origin not in browser_origins:
             return JSONResponse({"detail": "Untrusted browser origin"}, status_code=403)
         if request.headers.get("sec-fetch-site") == "cross-site":
             return JSONResponse({"detail": "Cross-site requests are forbidden"}, status_code=403)
