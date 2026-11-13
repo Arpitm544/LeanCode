@@ -66,3 +66,17 @@ class ApiTests(unittest.TestCase):
         store.claim(sid)
         store.recover()
         self.assertEqual(store.session(sid)["status"], "interrupted")
+
+    def test_separate_tokens_enforce_profile_ownership_and_limits(self):
+        settings = self.app.state.settings
+        settings.users = {"alice": {"token": "alice-private-token", "limit_micro": 100},
+                          "bob": {"token": "bob-private-token", "limit_micro": 200}}
+        app = create_app(settings)
+        sid, _ = app.state.store.create_session("demo", "fix alice bug", user_id="alice")
+        app.state.store.propose(sid, "patch", {"diff": "review"})
+        with TestClient(app, base_url="http://localhost") as client:
+            bob = {"Authorization": "Bearer bob-private-token"}
+            self.assertEqual(client.get(f"/api/sessions/{sid}", headers=bob).status_code, 404)
+            bootstrap = client.get("/api/bootstrap", headers=bob).json()
+            self.assertEqual(bootstrap["sessions"], [])
+            self.assertEqual(bootstrap["user"]["limit_micro"], 200)

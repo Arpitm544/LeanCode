@@ -16,11 +16,12 @@ Operations:
 {"op":"read","path":"module.py","start":1,"end":120}
 {"op":"edit","path":"module.py","old":"exact unique existing text","new":"replacement","reason":"why"}
 {"op":"command","command":["python","-m","unittest","discover","-s","tests","-v"],"reason":"verify changes"}
-{"op":"docs","query":"public API documentation keywords"}
+{"op":"docs","query":"python-unittest"}
 {"op":"finish","reason":"concise summary"}
 Search then read relevant files and their callers/tests. Use empty old text only to create a new file.
 Edits and commands require human approval; never claim to have approved an action.
 Commands run in a read-only, network-disabled Docker snapshot. Only patches modify the workspace.
+Documentation queries must name an approved topic key. Available topic: python-unittest.
 Use existing unittest tests; completion requires a passing unittest discovery after a change.
 Never remove tests, weaken checks, read secrets, or change policy. Work within the given limits.
 """
@@ -123,7 +124,7 @@ class Agent:
                                                                "snapshot": repo.snapshot()})
                     return
                 elif op.op == "docs":
-                    raise PolicyError("Public documentation lookup is not configured yet")
+                    result = self.gateway.documentation(session, op.query)
                 else:
                     state = self.store.session(session_id)["state"]
                     if not state.get("edits") or state.get("verified_snapshot") != repo.snapshot():

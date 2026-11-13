@@ -63,13 +63,15 @@ export default function App() {
               refresh().catch(() => {})
             }
           })
+          const latest = await request<Session>(`/sessions/${sessionId}`, token)
+          if (terminalStatuses.includes(latest.status)) { setLive(false); return }
         } catch { if (controller.signal.aborted) return; setLive(false); setReconnecting(true) }
         if (!controller.signal.aborted) await new Promise(resolve => setTimeout(resolve, 2000))
       }
     }
     connect()
     return () => { controller.abort(); setLive(false) }
-  }, [sessionId, token, refresh])
+  }, [sessionId, session?.status, token, refresh])
 
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }, [session?.events.length])
 
@@ -109,7 +111,7 @@ export default function App() {
       <div className="session-list">{data?.sessions.length ? data.sessions.map(item => <button key={item.id} className={`session-link ${item.id === session?.id ? 'selected' : ''}`} onClick={async () => {
         try { setSession(await request<Session>(`/sessions/${item.id}`, token)); setView('workspace') } catch (e) { setError((e as Error).message) }
       }}><span className={`status-dot ${item.status}`}/><span>{item.task}</span></button>) : <p className="sidebar-empty">Your sessions will appear here.</p>}</div>
-      <div className="sidebar-bottom"><div className="local-badge"><ShieldCheck size={16}/><div>Local workspace<small>Your code. Your control.</small></div><span className="status-dot completed"/></div><div className="profile"><span className="avatar">L</span><div>Local developer<small>Personal workspace</small></div>{data && <button className="icon-button" title="Disconnect workspace" onClick={() => { sessionStorage.removeItem('leancode-token'); setToken(''); setData(null); setSession(null) }}><Unplug size={16}/></button>}</div></div>
+      <div className="sidebar-bottom"><div className="local-badge"><ShieldCheck size={16}/><div>Local workspace<small>Your code. Your control.</small></div><span className="status-dot completed"/></div><div className="profile"><span className="avatar">L</span><div>{data?.user.id || 'Local developer'}<small>Personal workspace</small></div>{data && <button className="icon-button" title="Disconnect workspace" onClick={() => { sessionStorage.removeItem('leancode-token'); setToken(''); setData(null); setSession(null) }}><Unplug size={16}/></button>}</div></div>
     </aside>
 
     <main className="main">

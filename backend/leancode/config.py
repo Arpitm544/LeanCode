@@ -14,6 +14,10 @@ class Settings:
     repositories: dict = field(default_factory=dict)
     routes: list = field(default_factory=list)
     sandbox_image: str = "leancode-sandbox:local"
+    users: dict = field(default_factory=dict)
+    documentation_topics: dict = field(default_factory=lambda: {
+        "python-unittest": "Python unittest test discovery official documentation",
+    })
 
     @classmethod
     def load(cls):
@@ -22,6 +26,7 @@ class Settings:
             repositories=json.loads(os.getenv("LEANCODE_REPOSITORIES", "{}")),
             routes=json.loads(os.getenv("LEANCODE_ROUTES", "[]")),
             sandbox_image=os.getenv("LEANCODE_SANDBOX_IMAGE", "leancode-sandbox:local"),
+            users=json.loads(os.getenv("LEANCODE_USERS", "{}")),
         )
         settings.data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         if not settings.token:

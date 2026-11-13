@@ -32,6 +32,13 @@ def create_app(settings=None, runner=None):
     settings = settings or Settings.load()
     store = Store(settings.data_dir / "leancode.sqlite3")
     runner = runner or Agent(settings, store).run
+    users = settings.users or {"local": {"token": settings.token, "limit_micro": 1_000_000}}
+    with store.connect() as db:
+        for user_id, config in users.items():
+            if not config.get("token") or type(config.get("limit_micro")) is not int or config["limit_micro"] < 0:
+                raise ValueError("Each local profile requires a token and non-negative integer limit_micro")
+            db.execute("INSERT INTO users(id,limit_micro) VALUES(?,?) ON CONFLICT(id) "
+                       "DO UPDATE SET limit_micro=excluded.limit_micro", (user_id, config["limit_micro"]))
     workers = set()
 
     @asynccontextmanager
@@ -57,9 +64,10 @@ def create_app(settings=None, runner=None):
         return await call_next(request)
 
     def authenticate(authorization: str = Header(default="")):
-        if not secrets.compare_digest(authorization, f"Bearer {settings.token}"):
-            raise HTTPException(401, "Enter your local backend access token")
-        return "local"
+        for user_id, config in users.items():
+            if secrets.compare_digest(authorization, f"Bearer {config['token']}"):
+                return user_id
+        raise HTTPException(401, "Enter your local backend access token")
 
     def owned(session_id, user):
         try:
