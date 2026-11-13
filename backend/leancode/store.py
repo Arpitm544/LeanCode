@@ -62,10 +62,11 @@ class Store:
                               (session_id, after)).fetchall()
         return [{**dict(row), "data": json.loads(row["data"])} for row in rows]
 
-    def session(self, session_id, user_id="local"):
+    def session(self, session_id, user_id=None):
         with self.connect() as db:
-            row = db.execute("SELECT * FROM sessions WHERE id=? AND user_id=?",
-                             (session_id, user_id)).fetchone()
+            # Workers already hold a trusted session ID; HTTP callers pass the authenticated owner.
+            row = db.execute("SELECT * FROM sessions WHERE id=?" + (" AND user_id=?" if user_id is not None else ""),
+                             (session_id, user_id) if user_id is not None else (session_id,)).fetchone()
             if not row:
                 raise LookupError("Session not found")
             actions = db.execute("SELECT * FROM actions WHERE session_id=? ORDER BY rowid", (session_id,))

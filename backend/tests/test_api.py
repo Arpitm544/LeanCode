@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from leancode.api import create_app
 from leancode.config import Settings
+from leancode.agent import Agent
 
 
 class ApiTests(unittest.TestCase):
@@ -80,3 +81,24 @@ class ApiTests(unittest.TestCase):
             bootstrap = client.get("/api/bootstrap", headers=bob).json()
             self.assertEqual(bootstrap["sessions"], [])
             self.assertEqual(bootstrap["user"]["limit_micro"], 200)
+
+    def test_non_local_worker_reaches_budget_policy_and_owned_event_replay(self):
+        settings = self.app.state.settings
+        settings.users = {"alice": {"token": "alice-private-token", "limit_micro": 0}}
+        settings.repositories["demo"]["confidential"] = False
+        settings.routes = [{"model": "test", "bounded_output": True, "input_rate": 1, "output_rate": 1}]
+        app = create_app(settings)
+        store = app.state.store
+        sid, _ = store.create_session("demo", "fix alice bug", user_id="alice")
+        from unittest.mock import patch
+        with patch.dict("os.environ", {"LEANCODE_GATEWAY_SINGLE_ATTEMPT": "true"}):
+            Agent(settings, store).run(sid)
+        session = store.session(sid, "alice")
+        self.assertEqual(session["status"], "blocked")
+        self.assertTrue(any("Budget exhausted" in e["data"].get("message", "") for e in session["events"]))
+        self.assertEqual(session["state"].get("model_calls", 0), 0)
+        with TestClient(app, base_url="http://localhost") as client:
+            auth = {"Authorization": "Bearer alice-private-token"}
+            self.assertEqual(client.get(f"/api/sessions/{sid}/events", headers=auth).status_code, 200)
+        with self.assertRaises(LookupError):
+            store.session(sid, "bob")
