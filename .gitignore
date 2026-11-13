@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+node_modules/
+dist/
+.leancode/
+.DS_Store
+benchmarks/results/
+playwright-report/
+test-results/
