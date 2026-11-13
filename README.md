@@ -4,6 +4,8 @@ A local coding agent that measures token use, reviews changes before execution, 
 
 Stack: React + TypeScript + Vite + Tailwind CSS; Python + FastAPI; SQLite; Bifrost; Ollama; Tavily; Docker.
 
+The Workbench uses the supplied Cue Minimal AI Dev Workspace design with live agent sessions and exact action approvals. See the [frontend component and integration guide](frontend/README.md).
+
 ## Development
 
 Requires Python 3.11+, Node 22+, and Docker for agent execution.

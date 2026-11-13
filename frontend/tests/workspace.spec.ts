@@ -1,32 +1,45 @@
 import { test, expect } from '@playwright/test'
 
-test('connect, reject without execution, approve patch and tests, then recover after refresh', async ({ page }) => {
+test('reference workspace preserves live sessions, approvals, navigation, and mobile composition', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
-  await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Good code. A lighter footprint.' })).toBeVisible()
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  expect(await page.locator('.art-paper-front').evaluate(node => getComputedStyle(node).animationName)).toBe('none')
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Welcome to LeanCode' })).toBeVisible()
   await page.getByLabel('Local access token').fill('wrong-token')
   await page.getByRole('button', { name: 'Connect', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('access token')
   await page.getByLabel('Local access token').fill('e2e-local-token')
   await page.getByRole('button', { name: 'Connect', exact: true }).click()
   await expect(page.getByText('Backend connected', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Fix a bug', exact: true }).click()
+  expect(await page.locator('.dw-workflow-card').last().evaluate(node => {
+    const panel = node.closest('.dw-scrollable-area')!
+    return node.getBoundingClientRect().bottom <= panel.getBoundingClientRect().bottom
+  })).toBeTruthy()
+  await page.screenshot({ path: 'test-results/workspace-welcome-desktop.png', fullPage: true })
+
+  await page.getByRole('navigation').getByRole('button', { name: 'Repositories', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Repositories', exact: true })).toBeVisible()
+  await expect(page.locator('.dw-repo-card')).toHaveCount(1)
+  await page.locator('.dw-repo-card').click()
+  await page.getByRole('button', { name: 'Fix a bug', exact: false }).click()
   await expect(page.getByLabel('Coding task')).toBeFocused()
   await expect(page.getByLabel('Coding task')).toHaveValue(/smallest fix/)
   await page.getByLabel('Coding task').fill('Fix is_positive so zero is not positive')
-  await page.getByRole('button', { name: 'Run agent' }).click()
+  await page.getByLabel('Coding task').press('Shift+Enter')
+  await expect(page.getByLabel('Coding task')).toHaveValue(/\n/)
+  await page.getByLabel('Coding task').press('Enter')
   await expect(page.getByRole('button', { name: 'Approve patch' })).toBeVisible()
-  expect(await page.locator('.approval-panel').evaluate(node => {
-    const activity = document.querySelector('.execution-panel')!
-    return node.getBoundingClientRect().top < activity.getBoundingClientRect().top
+  await expect(page.getByLabel('Coding task')).toHaveValue('')
+  expect(await page.locator('.dw-chat-message').first().evaluate(node => getComputedStyle(node).animationName)).toBe('none')
+  expect(await page.getByRole('button', { name: 'Approve patch' }).evaluate(node => {
+    const panel = node.closest('.dw-scrollable-area')!
+    return node.getBoundingClientRect().bottom <= panel.getBoundingClientRect().bottom
   })).toBeTruthy()
-  await page.evaluate(() => window.scrollTo(0, 0))
   await page.screenshot({ path: 'test-results/workspace-review.png', fullPage: true })
   await page.getByRole('button', { name: 'Reject', exact: true }).click()
   await expect(page.getByText('Action rejected; nothing executed')).toBeVisible()
+  await page.getByLabel('Coding task').fill('Fix is_positive so zero is not positive')
   await page.getByRole('button', { name: 'Run agent' }).click()
   await page.getByRole('button', { name: 'Approve patch' }).click()
   await expect(page.getByRole('button', { name: 'Approve command' })).toBeVisible()
@@ -38,12 +51,34 @@ test('connect, reject without execution, approve patch and tests, then recover a
   await page.getByRole('tab', { name: /Changes/ }).click()
   await expect(page.getByLabel('Patch diff')).toContainText('+    return value > 0')
   await expect(page.locator('.diff .added').last()).toBeInViewport()
-  await page.evaluate(() => window.scrollTo(0, 0))
   await page.screenshot({ path: 'test-results/workspace-desktop.png', fullPage: true })
+
+  await page.getByRole('navigation').getByRole('button', { name: 'Build History', exact: true }).click()
+  await expect(page.getByRole('table').locator('tbody tr')).toHaveCount(2)
+  await page.getByLabel('Search build history').fill('no matching session')
+  await expect(page.getByRole('heading', { name: 'A clean slate' })).toBeVisible()
+  await page.getByLabel('Search build history').fill('')
+  await page.getByRole('table').getByRole('button', { name: 'Open', exact: true }).first().click()
+  await expect(page.locator('.execution-status')).toHaveText('completed')
+  await page.getByRole('navigation').getByRole('button', { name: 'Documentation', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Your workspace policies' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Python unittest/ })).toHaveAttribute('href', 'https://docs.python.org/3/library/unittest.html')
+
   await page.setViewportSize({ width: 390, height: 844 })
-  await expect(page.getByRole('heading', { name: 'Good code. A lighter footprint.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Open navigation' }).click()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: 'Open navigation' })).toBeFocused()
+  await page.getByRole('button', { name: 'Open navigation' }).click()
+  await page.getByRole('button', { name: 'New chat', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Welcome to LeanCode' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Run agent' })).toBeInViewport()
+  expect(await page.locator('.dw-chat-box').evaluate(node => {
+    const box = node.getBoundingClientRect()
+    return box.left >= 0 && box.right <= window.innerWidth && box.bottom <= window.innerHeight
+  })).toBeTruthy()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy()
   await page.screenshot({ path: 'test-results/workspace-mobile.png', fullPage: true })
+  await page.getByRole('button', { name: 'Open navigation' }).click()
   await page.getByRole('button', { name: 'Benchmarks', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Let the results do the talking.' })).toBeVisible()
   expect(errors).toEqual([])
