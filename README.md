@@ -40,7 +40,7 @@ npm run build
 - [x] 4. Safe coding-agent execution (real-provider validation pending configuration)
 - [x] 5. Reliability, budgets, privacy (fault-injection tests; live failover pending configuration)
 - [x] 6. Token efficiency (context reduction checked; live token savings not yet measured)
-- [ ] 7. Benchmarks and results
+- [x] 7. Benchmark fixtures and runner (live results pending model configuration)
 - [ ] 8. Demo and submission
 
 Integration availability and real-provider completion are tracked separately from implementation. No savings results are claimed before measurement. See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).

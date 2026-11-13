@@ -39,6 +39,8 @@ class Gateway:
                 headers["Authorization"] = f"Bearer {os.environ['BIFROST_KEY']}"
             payload = {"model": route["model"], "messages": messages, "max_tokens": max_output,
                        "temperature": 0, "stream": False, "response_format": {"type": "json_object"}}
+            prior_calls = self.store.session(session["id"])["state"].get("model_calls", 0)
+            self.store.update(session["id"], model_calls=prior_calls + 1)
             try:
                 with httpx.Client(timeout=60, transport=self.transport, trust_env=False, follow_redirects=False) as client:
                     response = client.post(endpoint.rstrip("/") + "/chat/completions", headers=headers, json=payload)
@@ -63,6 +65,7 @@ class Gateway:
                 current = self.store.session(session["id"])["state"]
                 self.store.update(session["id"], input_tokens=current.get("input_tokens", 0) + input_tokens,
                                   output_tokens=current.get("output_tokens", 0) + output_tokens,
+                                  cached_tokens=current.get("cached_tokens", 0) + usage.get("prompt_tokens_details", {}).get("cached_tokens", 0),
                                   cost_micro=current.get("cost_micro", 0) + actual)
                 self.store.event(session["id"], "usage", {"message": f"{input_tokens} input + {output_tokens} output tokens; cost recorded",
                                                          "input_tokens": input_tokens, "output_tokens": output_tokens})

@@ -173,6 +173,6 @@ def create_app(settings=None, runner=None):
     @app.get("/api/benchmarks")
     def benchmarks(user=Depends(authenticate)):
         report = settings.data_dir / "benchmark-results.json"
-        return json.loads(report.read_text()) if report.exists() else []
+        return [row for row in json.loads(report.read_text()) if row.get("user_id") == user] if report.exists() else []
 
     return app

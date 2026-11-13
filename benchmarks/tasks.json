@@ -1,0 +1,78 @@
+[
+  {
+    "id": "boundary",
+    "task": "Fix is_positive in maths.py: zero is not positive. Preserve behavior for negative and positive numbers.",
+    "edits": [
+      {
+        "path": "maths.py",
+        "old": "value >= 0",
+        "new": "value > 0"
+      }
+    ]
+  },
+  {
+    "id": "validation",
+    "task": "Make validate_port in ports.py accept only integer ports 1 through 65535. Reject booleans, strings, floats and out-of-range values with ValueError.",
+    "edits": [
+      {
+        "path": "ports.py",
+        "old": "    return int(value)",
+        "new": "    if type(value) is not int or not 1 <= value <= 65535:\n        raise ValueError('port must be an integer between 1 and 65535')\n    return value"
+      }
+    ]
+  },
+  {
+    "id": "callers",
+    "task": "Update pricing.total(price, quantity, tax_rate=0) to include tax and round to two decimals. Update checkout.quote and receipt.receipt_total to accept and forward optional tax_rate. Preserve existing two-argument calls.",
+    "edits": [
+      {
+        "path": "pricing.py",
+        "old": "def total(price, quantity):\n    return price * quantity",
+        "new": "def total(price, quantity, tax_rate=0):\n    return round(price * quantity * (1 + tax_rate), 2)"
+      },
+      {
+        "path": "checkout.py",
+        "old": "def quote(price, quantity):\n    return total(price, quantity)",
+        "new": "def quote(price, quantity, tax_rate=0):\n    return total(price, quantity, tax_rate=tax_rate)"
+      },
+      {
+        "path": "receipt.py",
+        "old": "def receipt_total(price, quantity):\n    return total(price, quantity)",
+        "new": "def receipt_total(price, quantity, tax_rate=0):\n    return total(price, quantity, tax_rate=tax_rate)"
+      }
+    ]
+  },
+  {
+    "id": "refactor",
+    "task": "Extract slug(text) in formatters.py, preserving the exact existing strip/lower/space replacement behavior. Refactor both article_path and tag_path to call slug instead of duplicating it.",
+    "edits": [
+      {
+        "path": "formatters.py",
+        "old": "def article_path(text):\n    return '/articles/' + text.strip().lower().replace(' ', '-')\n\ndef tag_path(text):\n    return '/tags/' + text.strip().lower().replace(' ', '-')\n",
+        "new": "def slug(text):\n    return text.strip().lower().replace(' ', '-')\n\ndef article_path(text):\n    return '/articles/' + slug(text)\n\ndef tag_path(text):\n    return '/tags/' + slug(text)\n"
+      }
+    ]
+  },
+  {
+    "id": "crossfile",
+    "task": "Fix shared mutable catalog state at its source. get_item must return an independent copy, including nested metadata, so discounting an item or changing its tags cannot affect future reads. Preserve all caller APIs.",
+    "edits": [
+      {
+        "path": "catalog.py",
+        "old": "CATALOG = {'book': {'price': 20, 'metadata': {'tags': ['new']}}}\n\ndef get_item(key):\n    return CATALOG[key]\n",
+        "new": "from copy import deepcopy\n\nCATALOG = {'book': {'price': 20, 'metadata': {'tags': ['new']}}}\n\ndef get_item(key):\n    return deepcopy(CATALOG[key])\n"
+      }
+    ]
+  },
+  {
+    "id": "documentation",
+    "task": "Use the python-unittest public documentation topic if available. Fix discovery_args(directory, pattern) to pass pattern using unittest discovery -p while preserving -s directory and the existing default pattern.",
+    "edits": [
+      {
+        "path": "run_tests.py",
+        "old": "['python', '-m', 'unittest', 'discover', '-s', directory]",
+        "new": "['python', '-m', 'unittest', 'discover', '-s', directory, '-p', pattern]"
+      }
+    ]
+  }
+]
