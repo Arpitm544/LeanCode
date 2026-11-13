@@ -1,0 +1,9 @@
+.git
+.env
+.env.*
+.venv
+.leancode
+**/node_modules
+**/dist
+**/__pycache__
+benchmarks/results

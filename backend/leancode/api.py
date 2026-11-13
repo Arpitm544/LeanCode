@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from .agent import Agent
 from .config import Settings
 from .store import Store
 
@@ -30,6 +31,7 @@ class Decision(BaseModel):
 def create_app(settings=None, runner=None):
     settings = settings or Settings.load()
     store = Store(settings.data_dir / "leancode.sqlite3")
+    runner = runner or Agent(settings, store).run
     workers = set()
 
     @asynccontextmanager
@@ -65,15 +67,11 @@ def create_app(settings=None, runner=None):
         except LookupError:
             raise HTTPException(404, "Session not found") from None
 
-    def unavailable(session_id):
-        store.event(session_id, "error", {"message": "Agent execution is not configured yet"})
-        store.update(session_id, status="blocked")
-
     async def work(session_id):
         if not store.claim(session_id):
             return
         try:
-            await asyncio.to_thread(runner or unavailable, session_id)
+            await asyncio.to_thread(runner, session_id)
         except Exception:
             store.event(session_id, "error", {"message": "Worker failed; session saved. Check local backend logs."})
             store.update(session_id, status="failed")

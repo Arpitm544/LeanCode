@@ -37,7 +37,7 @@ npm run build
 - [x] 1. Foundation: web/backend scaffolding, persisted store, environment configuration
 - [x] 2. Task dashboard (live API wiring follows in Part 3)
 - [x] 3. Backend sessions and live events
-- [ ] 4. Safe coding-agent execution
+- [x] 4. Safe coding-agent execution (real-provider validation pending configuration)
 - [ ] 5. Reliability, budgets, privacy
 - [ ] 6. Token efficiency
 - [ ] 7. Benchmarks and results
