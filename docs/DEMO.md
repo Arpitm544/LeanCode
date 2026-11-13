@@ -28,3 +28,11 @@ The model replies in smoke/browser tests are scripted. These checks do not demon
 - 4:30-5:00: Explain sponsor integration roles and measured limitations.
 
 No live model/provider credentials were present during implementation, and Ollama was not installed. Live model quality, real-provider fallback, local inference capability, actual savings, and final submission remain unverified. The integration code and evaluation tools are ready for those checks; results must not be invented.
+
+## Integration progress: November 13, 2026
+
+- A real Tavily basic search for public Python unittest documentation succeeded and returned two results. The application's ledger recorded the configured conservative $0.008 search cost; this is not an invoice claim. The key remains in the ignored local `.env`.
+- The official Bifrost v2.4.0 Docker gateway is running with its published port bound to `127.0.0.1:8080`. `/health` and `/openai/v1/models` returned HTTP 200. Gateway data is stored in the ignored `.leancode/bifrost/` directory.
+- Model routes remain empty. A real coding model, verified pricing, and bounded-request configuration are still required before live coding or token-savings benchmarks.
+
+Tavily supplies documentation search; it does not replace the coding-model provider behind Bifrost.
