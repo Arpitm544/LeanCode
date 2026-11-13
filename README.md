@@ -39,7 +39,7 @@ npm run build
 - [x] 3. Backend sessions and live events
 - [x] 4. Safe coding-agent execution (real-provider validation pending configuration)
 - [x] 5. Reliability, budgets, privacy (fault-injection tests; live failover pending configuration)
-- [ ] 6. Token efficiency
+- [x] 6. Token efficiency (context reduction checked; live token savings not yet measured)
 - [ ] 7. Benchmarks and results
 - [ ] 8. Demo and submission
 

@@ -16,6 +16,9 @@ class Gateway:
         routes = allowed_routes(self.settings.routes, repository.get("confidential", True))
         if session["state"].get("mode") != "optimized":
             routes = [r for r in routes if r.get("primary", True)] or routes
+        else:
+            preferred = "strong" if session["state"].get("test_failures", 0) else "small"
+            routes = sorted(routes, key=lambda route: route.get("tier", "small") != preferred)
         max_output = 2048
         for index, route in enumerate(routes):
             if route.get("local") and os.getenv("LEANCODE_LOCAL_OFFLINE") != "true":

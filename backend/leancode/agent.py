@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from .context import Repository
+from .context import Repository, context_packet
 from .gateway import Gateway
 from .policy import PolicyError
 from .tools import apply_patch, patch_proposal, sandbox
@@ -77,16 +77,31 @@ class Agent:
             elif (result["exit_code"] == 0 and payload["command"][:4] == ["python", "-m", "unittest", "discover"]
                   and re.search(r"Ran [1-9]\d* tests?", result["output"]) and repo.snapshot() == payload["snapshot"]):
                 state["verified_snapshot"] = payload["snapshot"]
+            elif action["kind"] == "command" and result["exit_code"] != 0:
+                state["test_failures"] = state.get("test_failures", 0) + 1
             db.execute("UPDATE actions SET status='executed' WHERE id=?", (action["id"],))
             db.execute("UPDATE sessions SET state=?,status='running' WHERE id=?", (json.dumps(state), session_id))
         self.store.event(session_id, "tool", {"message": result.get("message", f"Command exited {result.get('exit_code')}"),
                                               "output": result.get("output", "")[:8000]})
 
     def packet(self, session, repo):
-        return [{"role": "system", "content": SYSTEM}, {"role": "user", "content": json.dumps({
-            "task": session["task"], "files": repo.inventory(), "history": session["state"].get("history", []),
-            "remaining_turns": 12 - session["state"].get("turns", 0),
-        })}]
+        return [{"role": "system", "content": SYSTEM},
+                {"role": "user", "content": json.dumps(context_packet(session, repo))}]
+
+    def read(self, session, repo, operation):
+        if session["state"].get("mode") == "baseline":
+            return repo.read(operation.path, operation.start, operation.end)
+        key = f"{operation.path}:{operation.start}:{operation.end}"
+        cache = session["state"].get("read_cache", {})
+        cached = cache.get(key)
+        if cached and cached["hash"] == repo.hash(operation.path):
+            self.store.update(session["id"], cache_hits=session["state"].get("cache_hits", 0) + 1)
+            return cached
+        result = repo.read(operation.path, operation.start, operation.end)
+        cache.pop(key, None)
+        cache[key] = result
+        self.store.update(session["id"], read_cache=cache)
+        return result
 
     def run(self, session_id):
         try:
@@ -100,6 +115,8 @@ class Agent:
                 turns = session["state"].get("turns", 0)
                 if turns >= 12:
                     raise PolicyError("12-turn task limit reached; progress saved")
+                if session["state"].get("test_failures", 0) > 2:
+                    raise PolicyError("Repair limit reached after repeated test failures; progress saved")
                 self.store.update(session_id, turns=turns + 1)
                 proposal = self.gateway.complete(session, self.packet(session, repo))
                 try:
@@ -112,7 +129,7 @@ class Agent:
                         raise PolicyError("Search query cannot be empty")
                     result = repo.search(op.query)
                 elif op.op == "read":
-                    result = repo.read(op.path, op.start, op.end)
+                    result = self.read(session, repo, op)
                 elif op.op == "edit":
                     payload = patch_proposal(repo, op.path, op.old, op.new, op.reason)
                     self.store.propose(session_id, "patch", payload)
