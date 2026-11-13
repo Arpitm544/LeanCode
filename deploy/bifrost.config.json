@@ -1,0 +1,63 @@
+{
+  "$schema": "https://www.getbifrost.ai/schema",
+  "source_of_truth": "config.json",
+  "setup_token": "env.BIFROST_SETUP_TOKEN",
+  "auth_config": {
+    "admin_username": "leancode",
+    "admin_password": "env.LEANCODE_BIFROST_ADMIN_PASSWORD",
+    "is_enabled": true
+  },
+  "client": {
+    "enable_logging": false,
+    "disable_content_logging": true,
+    "enforce_auth_on_inference": true
+  },
+  "governance": {
+    "virtual_keys": [
+      {
+        "id": "leancode-local-gemini",
+        "name": "leancode-local-gemini",
+        "value": "env.LEANCODE_BIFROST_VIRTUAL_KEY",
+        "is_active": true,
+        "disable_content_logging": true,
+        "allow_all_providers": false,
+        "provider_configs": [
+          {
+            "provider": "gemini",
+            "allowed_models": [
+              "gemini-3.5-flash-lite"
+            ],
+            "key_ids": [
+              "*"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "providers": {
+    "gemini": {
+      "keys": [
+        {
+          "name": "leancode-gemini",
+          "value": "env.GEMINI_API_KEY",
+          "models": [
+            "gemini-3.5-flash-lite"
+          ],
+          "weight": 1
+        }
+      ],
+      "network_config": {
+        "max_retries": 0,
+        "default_request_timeout_in_seconds": 45
+      },
+      "concurrency_and_buffer_size": {
+        "concurrency": 1,
+        "buffer_size": 10
+      },
+      "send_back_raw_request": false,
+      "send_back_raw_response": false,
+      "store_raw_request_response": false
+    }
+  }
+}

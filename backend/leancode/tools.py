@@ -51,6 +51,9 @@ def apply_patch(repo, payload):
 
 
 def sandbox(repo, command, image, timeout=60):
+    backend = os.getenv("LEANCODE_SANDBOX_BACKEND", "docker")
+    if backend not in {"docker", "render"}:
+        raise PolicyError("Unknown sandbox backend; execution blocked")
     if not command or len(command) > 30 or sum(map(len, command)) > 2000:
         raise PolicyError("Invalid command")
     name = f"leancode-{uuid.uuid4().hex}"
@@ -71,6 +74,9 @@ def sandbox(repo, command, image, timeout=60):
                 "--cpus=1", "--user=65534:65534", "--tmpfs=/tmp:rw,noexec,nosuid,size=32m",
                 "--mount", f"type=bind,src={directory},dst=/workspace,readonly", "--workdir=/workspace",
                 "--env=PYTHONDONTWRITEBYTECODE=1", "--env=HOME=/tmp", image, *command]
+        if backend == "render":
+            from .render_sandbox import execute
+            return execute(directory, args, timeout)
         process = None
         try:
             process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,

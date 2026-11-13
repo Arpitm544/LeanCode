@@ -1,0 +1,73 @@
+services:
+  - type: pserv
+    name: leancode-bifrost
+    runtime: docker
+    branch: codex/leancode
+    region: oregon
+    plan: 0.5c-512mb
+    dockerfilePath: ./deploy/Dockerfile.bifrost
+    dockerContext: .
+    autoDeployTrigger: "off"
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: LEANCODE_BIFROST_VIRTUAL_KEY
+        generateValue: true
+      - key: LEANCODE_BIFROST_ADMIN_PASSWORD
+        generateValue: true
+      - key: BIFROST_SETUP_TOKEN
+        generateValue: true
+  - type: web
+    name: leancode-api
+    runtime: python
+    branch: codex/leancode
+    region: oregon
+    plan: 0.5c-512mb
+    numInstances: 1
+    autoDeployTrigger: "off"
+    buildCommand: uv sync --frozen --extra cloud
+    startCommand: .venv/bin/python scripts/start_render.py
+    healthCheckPath: /api/health
+    disk:
+      name: leancode-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.15
+      - key: LEANCODE_DATA_DIR
+        value: /var/data/leancode
+      - key: LEANCODE_TOKEN
+        generateValue: true
+      - key: LEANCODE_BROWSER_ORIGINS
+        sync: false
+      - key: LEANCODE_SANDBOX_BACKEND
+        value: render
+      - key: RENDER_API_KEY
+        sync: false
+      - key: RENDER_WORKSPACE_ID
+        sync: false
+      - key: LEANCODE_RENDER_SNAPSHOT_ID
+        sync: false
+      - key: LEANCODE_RENDER_SANDBOX_GROUP_ID
+        sync: false
+      - key: BIFROST_HOSTPORT
+        fromService:
+          name: leancode-bifrost
+          type: pserv
+          property: hostport
+      - key: LEANCODE_BIFROST_VIRTUAL_KEY
+        fromService:
+          name: leancode-bifrost
+          type: pserv
+          envVarKey: LEANCODE_BIFROST_VIRTUAL_KEY
+      - key: LEANCODE_GATEWAY_SINGLE_ATTEMPT
+        value: "true"
+      - key: LEANCODE_ROUTES
+        value: '[{"name":"Gemini 3.5 Flash-Lite","model":"gemini/gemini-3.5-flash-lite","local":false,"primary":true,"tier":"small","bounded_output":true,"input_rate":300000,"output_rate":2500000}]'
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: TAVILY_SEARCH_COST_MICRO
+        value: "8000"
+      - key: LEANCODE_DOC_DOMAINS
+        value: docs.python.org

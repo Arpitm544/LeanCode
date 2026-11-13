@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from leancode.agent import Agent
 from leancode.config import Settings
@@ -79,3 +80,15 @@ class AgentTests(unittest.TestCase):
         self.store.claim(self.sid)
         agent.run(self.sid)
         self.assertEqual(self.store.session(self.sid)["status"], "blocked")
+
+    def test_confidential_command_cannot_upload_to_cloud_sandbox(self):
+        repo = Repository(self.root)
+        aid = self.store.propose(self.sid, "command", {"command": ["python", "-V"], "snapshot": repo.snapshot()})
+        self.store.decide(self.sid, aid, True)
+        executor = Mock()
+        agent = Agent(self.settings, self.store, executor=executor)
+        with patch.dict("os.environ", {"LEANCODE_SANDBOX_BACKEND": "render"}):
+            agent.run(self.sid)
+        executor.assert_not_called()
+        self.assertEqual(self.store.session(self.sid)["status"], "blocked")
+        self.assertIn("cannot be uploaded", self.store.session(self.sid)["events"][-2]["data"]["message"])

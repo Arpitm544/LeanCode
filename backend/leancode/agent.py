@@ -1,4 +1,5 @@
 import json
+import os
 import re
 from typing import Literal
 
@@ -53,6 +54,10 @@ class Agent:
 
     def execute_approved(self, session_id, repo, action):
         payload = action["payload"]
+        if action["kind"] == "command" and os.getenv("LEANCODE_SANDBOX_BACKEND", "docker") == "render":
+            session = self.store.session(session_id)
+            if self.settings.repositories[session["repository"]].get("confidential", True):
+                raise PolicyError("Confidential repositories cannot be uploaded to a cloud execution sandbox")
         if action["kind"] == "command" and repo.snapshot() != payload["snapshot"]:
             raise PolicyError("Workspace changed after command review; request fresh approval")
         with self.store.connect() as db:

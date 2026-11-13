@@ -6,6 +6,8 @@ Stack: React + TypeScript + Vite + Tailwind CSS; Python + FastAPI; SQLite; Bifro
 
 The Workbench uses the supplied Cue Minimal AI Dev Workspace design with live agent sessions and exact action approvals. See the [frontend component and integration guide](frontend/README.md).
 
+For Vercel frontend + Render backend deployment, see the [deployment guide](docs/DEPLOYMENT.md) and `render.yaml`. Cloud command execution uses managed Render Sandboxes; it never runs approved repository commands inside the API process.
+
 ## Development
 
 Requires Python 3.11+, Node 22+, and Docker for agent execution.
