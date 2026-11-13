@@ -37,7 +37,9 @@ class Gateway:
             headers = {"Content-Type": "application/json"}
             if not route.get("local") and os.getenv("BIFROST_KEY"):
                 headers["Authorization"] = f"Bearer {os.environ['BIFROST_KEY']}"
-            payload = {"model": route["model"], "messages": messages, "max_tokens": max_output,
+                headers["x-bf-vk"] = os.environ["BIFROST_KEY"]
+            limit_field = "max_tokens" if route.get("local") else "max_completion_tokens"
+            payload = {"model": route["model"], "messages": messages, limit_field: max_output,
                        "temperature": 0, "stream": False, "response_format": {"type": "json_object"}}
             prior_calls = self.store.session(session["id"])["state"].get("model_calls", 0)
             self.store.update(session["id"], model_calls=prior_calls + 1)
@@ -60,6 +62,14 @@ class Gateway:
                 input_tokens, output_tokens = usage["prompt_tokens"], usage["completion_tokens"]
                 if type(input_tokens) is not int or type(output_tokens) is not int or min(input_tokens, output_tokens) < 0:
                     raise ValueError("Invalid usage")
+                # Gemini gateways may report visible completion and thinking separately.
+                total = usage.get("total_tokens")
+                if total is not None:
+                    if type(total) is not int or total < input_tokens + output_tokens:
+                        raise ValueError("Invalid total usage")
+                    output_tokens = max(output_tokens, total - input_tokens)
+                elif route["model"].startswith("gemini/"):
+                    raise ValueError("Gemini total usage is required to include thinking")
                 actual = charge(input_tokens, output_tokens, route)
                 settle(self.store, reservation, actual)
                 current = self.store.session(session["id"])["state"]

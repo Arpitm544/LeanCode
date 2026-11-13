@@ -36,3 +36,13 @@ No live model/provider credentials were present during implementation, and Ollam
 - Model routes remain empty. A real coding model, verified pricing, and bounded-request configuration are still required before live coding or token-savings benchmarks.
 
 Tavily supplies documentation search; it does not replace the coding-model provider behind Bifrost.
+
+### Gemini connection verified
+
+The Gemini key passed the provider's read-only authentication check. A real synthetic JSON-generation request then succeeded through authenticated Bifrost using `gemini/gemini-3.5-flash-lite`: 16 input tokens, 13 output tokens, and 38 micro-USD in the conservative ledger. This is a connection check, not a coding benchmark or savings result.
+
+Gateway admin authentication and a model-restricted inference virtual key are enabled. Raw/content logging is disabled, retries are zero, and one provider key is configured. Existing confidential repositories remain local-only. The separate public `cloud-demo` fixture can be used to review a real generated patch without uploading private code.
+
+Live coding acceptance, token-reduction measurements, a second independent provider, and isolated local inference remain to be validated. Earlier failed setup requests retained conservative spending reservations; they are not claimed as successful or free generation.
+
+A real agent task on the public boundary fixture inspected code and proposed changing `value >= 0` to `value > 0`. It used 1,716 reported tokens before pausing at explicit patch approval. The patch and subsequent test command still require user review; this is not yet a completed coding task.

@@ -142,3 +142,19 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(len(bodies), 1)
         self.assertEqual(bodies[0]["query"], self.settings.documentation_topics["python-unittest"])
         self.assertEqual(self.store.user()["spent_micro"], 100)
+
+    def test_gemini_thinking_usage_is_billed_and_completion_cap_is_sent(self):
+        self.settings.repositories["demo"]["confidential"] = False
+        self.settings.routes = [{"model": "gemini/test-model", "local": False, "bounded_output": True,
+                                 "input_rate": 1_000_000, "output_rate": 1_000_000}]
+        def respond(request):
+            body = json.loads(request.content)
+            self.assertEqual(body["max_completion_tokens"], 2048)
+            self.assertNotIn("max_tokens", body)
+            return httpx.Response(200, json={"usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 150},
+                                "choices": [{"message": {"content": '{"op":"finish"}'}}]})
+        gateway = Gateway(self.settings, self.store, httpx.MockTransport(respond))
+        with patch.dict(os.environ, {"LEANCODE_GATEWAY_SINGLE_ATTEMPT": "true"}):
+            gateway.complete(self.store.session(self.sid), [])
+        self.assertEqual(self.store.user()["spent_micro"], 150)
+        self.assertEqual(self.store.session(self.sid)["state"]["output_tokens"], 50)

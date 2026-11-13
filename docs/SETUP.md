@@ -21,6 +21,28 @@ Back up your work and review each patch. Existing edits are preserved through ha
 
 ## Public repositories: Bifrost
 
+### Verified local Gemini setup
+
+Add `GEMINI_API_KEY` to your private `.env`, then run `uv run python scripts/setup_gemini.py`. This prepares a private gateway config, a restricted Gemini virtual key, dashboard credentials, verified text pricing, and a separate public synthetic `cloud-demo` repository. It preserves existing repository privacy settings. The generated files under `.leancode/bifrost/` and your `.env` must remain untracked.
+
+Run the prepared gateway locally:
+
+```sh
+docker run -d --name leancode-bifrost \
+  --env-file "$PWD/.leancode/bifrost/gateway.env" \
+  -p 127.0.0.1:8080:8080 \
+  -v "$PWD/.leancode/bifrost:/app/data" \
+  maximhq/bifrost:v2.4.0
+```
+
+If this managed container is already running, stop/remove that container before recreating it; the mounted data directory is preserved. The dashboard username is `leancode`; its generated password is in `.leancode/bifrost/admin-password`. The app uses a restricted inference virtual key, not dashboard credentials.
+
+The configured model is `gemini/gemini-3.5-flash-lite`. Its standard text rates were verified on November 13, 2026 at [Google's pricing page](https://ai.google.dev/gemini-api/docs/pricing): $0.30 input and $2.50 output per million tokens, including thinking. The ledger conservatively uses these rates even if your account receives free credits. The connector sends `max_completion_tokens` for cloud requests and includes separately reported thinking in billed output using total usage. Google rejected the legacy 2.5 Flash-Lite model for this new account despite listing it, so it is not configured.
+
+This connects one provider. A second independent provider is still needed to demonstrate recovery from a provider-wide outage. Same-model baseline/context comparisons are possible now; there is no configured small-versus-large model comparison yet.
+
+### Other providers or manual configuration
+
 Follow the official [Bifrost setup](https://docs.getbifrost.ai/quickstart/gateway/setting-up) and configure two providers you have access to. Keep provider keys in the gateway environment, not in the frontend or repository.
 
 Set `BIFROST_URL` to its OpenAI-compatible endpoint and `BIFROST_KEY` if it requires authentication. Configure explicit provider-qualified model names, a single provider key per route, no automatic gateway routing overrides or fallbacks, and `network_config.max_retries=0`. LeanCode handles the bounded fallback sequence itself so it can reserve spending before each attempt. See [Bifrost retry behavior](https://docs.getbifrost.ai/features/retries-and-fallbacks).
@@ -40,7 +62,7 @@ Set `LEANCODE_GATEWAY_SINGLE_ATTEMPT=true` only after verifying those settings. 
 }
 ```
 
-Replace both nulls with verified non-negative integer rates in USD microdollars per million tokens. For example, $1 per million tokens is `1000000` in these units. Null or missing prices block requests. Verify that the model honors `max_tokens=2048` as a cap on all billed output, including reasoning, before setting `bounded_output=true`; unsupported models must remain disabled. The connector requires JSON responses and standard reported input/output usage.
+Replace both nulls with verified non-negative integer rates in USD microdollars per million tokens. For example, $1 per million tokens is `1000000` in these units. Null or missing prices block requests. Verify that the model honors `max_completion_tokens=2048` as a cap on all billed output, including reasoning, before setting `bounded_output=true`; unsupported models must remain disabled. The connector requires JSON responses and standard reported input/output usage.
 
 An optional cheap route uses `primary:false` and `tier:small`. Baseline/context experiments use primary routes; optimized runs prefer small routes and escalate toward strong routes after test failures. Cloud routes only work for repositories explicitly marked `confidential:false`. Restart the backend after changing trusted configuration.
 
