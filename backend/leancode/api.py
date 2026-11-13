@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 import secrets
 from contextlib import asynccontextmanager
@@ -33,12 +34,7 @@ def create_app(settings=None, runner=None):
     store = Store(settings.data_dir / "leancode.sqlite3")
     runner = runner or Agent(settings, store).run
     users = settings.users or {"local": {"token": settings.token, "limit_micro": 1_000_000}}
-    with store.connect() as db:
-        for user_id, config in users.items():
-            if not config.get("token") or type(config.get("limit_micro")) is not int or config["limit_micro"] < 0:
-                raise ValueError("Each local profile requires a token and non-negative integer limit_micro")
-            db.execute("INSERT INTO users(id,limit_micro) VALUES(?,?) ON CONFLICT(id) "
-                       "DO UPDATE SET limit_micro=excluded.limit_micro", (user_id, config["limit_micro"]))
+    store.configure_users(users)
     workers = set()
 
     @asynccontextmanager
@@ -81,6 +77,7 @@ def create_app(settings=None, runner=None):
         try:
             await asyncio.to_thread(runner, session_id)
         except Exception:
+            logging.getLogger(__name__).exception("Worker failed for session %s", session_id)
             store.event(session_id, "error", {"message": "Worker failed; session saved. Check local backend logs."})
             store.update(session_id, status="failed")
 
@@ -98,7 +95,7 @@ def create_app(settings=None, runner=None):
         return {
             "repositories": [{"id": key, "name": key, "confidential": repo.get("confidential", True)}
                              for key, repo in settings.repositories.items()],
-            "user": store.user(user), "sessions": store.sessions(user),
+            "user": store.user(user), "sessions": [s for s in store.sessions(user) if s["repository"] in settings.repositories],
             "integrations": [
                 {"name": "Bifrost", "configured": any(not r.get("local") for r in settings.routes),
                  "detail": "Cloud gateway · configuration only"},
@@ -140,7 +137,9 @@ def create_app(settings=None, runner=None):
 
     @app.post("/api/sessions/{session_id}/resume")
     async def resume(session_id: str, user=Depends(authenticate)):
-        owned(session_id, user)
+        current = owned(session_id, user)
+        if current["repository"] not in settings.repositories:
+            raise HTTPException(409, "Repository is no longer registered; this session cannot resume")
         try:
             store.resume(session_id)
         except ValueError as exc:

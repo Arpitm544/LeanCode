@@ -238,7 +238,7 @@ Verified technical references:
 
 Before implementation, confirm team size, actual hours remaining, available API credits/providers, and local RAM/model capability. Choose exact model IDs and prices through the integration spike, based on access and measured correctness rather than a speculative model ranking. Confirm whether sponsor integration usage has additional submission requirements.
 
-No application has been built or benchmarked yet. Main risks are local model capability, strict budget accounting across provider retries, and execution sandbox setup; validate those before spending time on presentation polish.
+Implementation update: the web app, agent loop, controls, benchmark runner, and browser checks are implemented. Six scripted Docker workflows pass. Live provider completion and token savings remain unmeasured. See docs/DEMO.md for remaining validation. Main risks are local model capability, strict budget accounting across provider retries, and execution sandbox setup; validate those before spending time on presentation polish.
 
 
 ## 13. Implementation parts with completion gates

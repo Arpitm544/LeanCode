@@ -1,5 +1,4 @@
 import json
-import math
 import uuid
 from urllib.parse import urlparse
 
@@ -29,7 +28,7 @@ def charge(input_tokens, output_tokens, route):
     for key in ("input_rate", "output_rate"):
         if type(route.get(key)) is not int or route[key] < 0:
             raise PolicyError("Verified non-negative integer model prices are required")
-    return math.ceil((input_tokens * route["input_rate"] + output_tokens * route["output_rate"]) / 1_000_000)
+    return (input_tokens * route["input_rate"] + output_tokens * route["output_rate"] + 999_999) // 1_000_000
 
 
 def request_bound(messages, route, max_output):

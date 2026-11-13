@@ -173,3 +173,14 @@ class Store:
             reserved = db.execute("SELECT COALESCE(SUM(amount_micro),0) FROM reservations "
                                   "WHERE user_id=? AND status='held'", (user_id,)).fetchone()[0]
         return {**dict(row), "reserved_micro": reserved}
+
+    def configure_users(self, users):
+        tokens = [config.get("token") for config in users.values()]
+        if len(tokens) != len(set(tokens)):
+            raise ValueError("Each local profile requires a different access token")
+        with self.connect() as db:
+            for user_id, config in users.items():
+                if not config.get("token") or type(config.get("limit_micro")) is not int or config["limit_micro"] < 0:
+                    raise ValueError("Each local profile requires a token and non-negative integer limit_micro")
+                db.execute("INSERT INTO users(id,limit_micro) VALUES(?,?) ON CONFLICT(id) "
+                           "DO UPDATE SET limit_micro=excluded.limit_micro", (user_id, config["limit_micro"]))

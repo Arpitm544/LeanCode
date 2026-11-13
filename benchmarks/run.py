@@ -44,15 +44,16 @@ def acceptance(workspace, fixture_id, image):
         return sandbox(Repository(evaluation), TEST_COMMAND, image)
 
 
-def run_fixture(settings, store, fixture, variant, smoke=False):
+def run_fixture(settings, store, fixture, variant, smoke=False, user_id="local"):
     start = time.monotonic()
     with tempfile.TemporaryDirectory(prefix="leancode-benchmark-") as tmp:
         workspace = Path(tmp) / "workspace"
         shutil.copytree(ROOT / "tasks" / fixture["id"], workspace)
-        settings.repositories[fixture["id"]] = {"path": str(workspace), "confidential": False}
+        repository_id = f"benchmark:{fixture['id']}"
+        settings.repositories[repository_id] = {"path": str(workspace), "confidential": False}
         if smoke and acceptance(workspace, fixture["id"], settings.sandbox_image)["exit_code"] == 0:
             raise RuntimeError("Fixture already passes acceptance before its required change")
-        sid, _ = store.create_session(fixture["id"], fixture["task"], "optimized" if smoke else variant)
+        sid, _ = store.create_session(repository_id, fixture["task"], "optimized" if smoke else variant, user_id=user_id)
         agent = Agent(settings, store, gateway=SmokeGateway(fixture) if smoke else None)
         unchanged_tests = {p.relative_to(workspace).as_posix(): p.read_bytes() for p in (workspace / "tests").rglob("*.py")}
         while True:
@@ -82,7 +83,7 @@ def run_fixture(settings, store, fixture, variant, smoke=False):
             holds = db.execute("SELECT COUNT(*),COALESCE(SUM(amount_micro),0) FROM reservations "
                                "WHERE session_id=? AND status='held'", (sid,)).fetchone()
         known_tokens = not smoke and not holds[0] and "input_tokens" in state and "output_tokens" in state
-        result = {"task": fixture["id"], "variant": variant, "session_id": sid, "user_id": "local",
+        result = {"task": fixture["id"], "variant": variant, "session_id": sid, "user_id": user_id,
                   "outcome": "passed" if passed else current["status"] if current["status"] != "completed" else "failed_acceptance",
                   "tokens": state.get("input_tokens", 0) + state.get("output_tokens", 0) if known_tokens else None,
                   "input_tokens": state.get("input_tokens"), "output_tokens": state.get("output_tokens"),
@@ -114,10 +115,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=["smoke", "live"], default="smoke")
     parser.add_argument("--task", default="all")
+    parser.add_argument("--user", default="local", help="Trusted local profile used for the shared spending ledger")
     parser.add_argument("--repeats", type=int, choices=range(1, 4), default=1)
     args = parser.parse_args()
     settings = Settings.load()
-    store = Store(settings.data_dir / "benchmark.sqlite3")
+    store = Store(settings.data_dir / "leancode.sqlite3")
+    users = settings.users or {"local": {"token": settings.token, "limit_micro": 1_000_000}}
+    store.configure_users(users)
+    if args.user not in users:
+        parser.error("Choose a configured local profile with --user")
     fixtures = json.loads((ROOT / "tasks.json").read_text())
     if args.task != "all":
         fixtures = [f for f in fixtures if f["id"] == args.task]
@@ -130,7 +136,7 @@ def main():
     for repeat in range(args.repeats):
         for fixture in fixtures:
             for variant in variants:
-                row = run_fixture(settings, store, fixture, variant, smoke=args.mode == "smoke")
+                row = run_fixture(settings, store, fixture, variant, smoke=args.mode == "smoke", user_id=args.user)
                 row["repeat"] = repeat + 1
                 results.append(row)
                 print(f"{fixture['id']:15} {variant:10} {row['outcome']:18} tokens={row['tokens']}")

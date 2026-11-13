@@ -35,12 +35,15 @@ npm run build
 ## Milestones
 
 - [x] 1. Foundation: web/backend scaffolding, persisted store, environment configuration
-- [x] 2. Task dashboard (live API wiring follows in Part 3)
+- [x] 2. Task dashboard
 - [x] 3. Backend sessions and live events
 - [x] 4. Safe coding-agent execution (real-provider validation pending configuration)
 - [x] 5. Reliability, budgets, privacy (fault-injection tests; live failover pending configuration)
 - [x] 6. Token efficiency (context reduction checked; live token savings not yet measured)
 - [x] 7. Benchmark fixtures and runner (live results pending model configuration)
-- [ ] 8. Demo and submission
+- [x] 8. Browser verification, setup instructions, and demo guide
+- [ ] Live provider validation, measured savings, and final hackathon submission
 
 Integration availability and real-provider completion are tracked separately from implementation. No savings results are claimed before measurement. See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+
+See [setup and model configuration](docs/SETUP.md), [benchmark instructions](benchmarks/README.md), and the [demo guide and remaining validation](docs/DEMO.md).
