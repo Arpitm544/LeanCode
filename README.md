@@ -36,7 +36,7 @@ npm run build
 
 - [x] 1. Foundation: web/backend scaffolding, persisted store, environment configuration
 - [x] 2. Task dashboard (live API wiring follows in Part 3)
-- [ ] 3. Backend sessions and live events
+- [x] 3. Backend sessions and live events
 - [ ] 4. Safe coding-agent execution
 - [ ] 5. Reliability, budgets, privacy
 - [ ] 6. Token efficiency

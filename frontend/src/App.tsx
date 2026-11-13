@@ -76,7 +76,7 @@ export default function App() {
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setError('')
     try {
-      const next = await request<Session>('/sessions', token, { method: 'POST', body: JSON.stringify({ repository: repo, task, mode: 'optimized' }) })
+      const next = await request<Session>('/sessions', token, { method: 'POST', body: JSON.stringify({ repository: repo, task, mode: 'optimized', request_id: crypto.randomUUID() }) })
       setSession(next); setTab('activity'); await refresh()
     } catch (e) { setError((e as Error).message) } finally { setBusy(false) }
   }
