@@ -27,6 +27,39 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/bootstrap", headers={**self.auth, "Origin": "https://evil.test"}).status_code, 403)
         self.assertEqual(self.client.get("/api/bootstrap", headers={**self.auth, "Host": "evil.test"}).status_code, 400)
 
+    def test_vercel_origin_preflight_stream_and_host_are_explicit(self):
+        settings = self.app.state.settings
+        settings.allowed_hosts = ["leancode-api.onrender.com"]
+        settings.browser_origins = ["https://leancode.vercel.app"]
+        app = create_app(settings)
+        headers = {**self.auth, "Origin": settings.browser_origins[0], "Sec-Fetch-Site": "cross-site"}
+        sid, _ = app.state.store.create_session("demo", "fix bug")
+        app.state.store.update(sid, status="blocked")
+        with TestClient(app, base_url="https://leancode-api.onrender.com") as client:
+            preflight = client.options("/api/sessions", headers={"Origin": settings.browser_origins[0],
+                "Sec-Fetch-Site": "cross-site", "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "authorization,content-type"})
+            self.assertEqual(preflight.status_code, 200)
+            self.assertEqual(preflight.headers["access-control-allow-origin"], settings.browser_origins[0])
+            self.assertEqual(client.get("/api/bootstrap", headers=headers).status_code, 200)
+            stream = client.get(f"/api/sessions/{sid}/events", headers=headers)
+            self.assertEqual(stream.status_code, 200)
+            self.assertIn("data:", stream.text)
+            self.assertEqual(client.get("/api/bootstrap", headers={"Origin": settings.browser_origins[0]}).status_code, 401)
+            self.assertEqual(client.get("/api/bootstrap", headers={**headers, "Origin": "https://evil.vercel.app"}).status_code, 403)
+            self.assertEqual(client.get("/api/health", headers={"Host": "evil.onrender.com"}).status_code, 400)
+
+    def test_deployment_wildcards_and_non_https_origins_are_rejected(self):
+        settings = self.app.state.settings
+        for origin in ["*", "https://*.vercel.app", "http://leancode.vercel.app", "https://leancode.vercel.app/", "https://user:password@leancode.vercel.app"]:
+            settings.browser_origins = [origin]
+            with self.assertRaises(ValueError):
+                create_app(settings)
+        settings.browser_origins = []
+        settings.allowed_hosts = ["*"]
+        with self.assertRaises(ValueError):
+            create_app(settings)
+
     def test_task_validation_and_session_ownership(self):
         response = self.client.post("/api/sessions", headers=self.auth,
                                     json={"repository": "../../private", "task": "fix a bug", "request_id": "a" * 20})

@@ -12,8 +12,13 @@ export type Bootstrap = {
   sessions: Session[]
 }
 
+const apiOrigin = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+if (apiOrigin && (new URL(apiOrigin).protocol !== 'https:' || new URL(apiOrigin).origin !== apiOrigin)) {
+  throw new Error('VITE_API_URL must be an HTTPS origin without a path')
+}
+
 export async function request<T>(path: string, token: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(`${apiOrigin}/api${path}`, {
     ...options,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...options.headers },
   })
@@ -26,7 +31,7 @@ export async function request<T>(path: string, token: string, options: RequestIn
 }
 
 export async function streamEvents(id: string, token: string, after: number, signal: AbortSignal, onEvent: (event: AgentEvent) => void) {
-  const response = await fetch(`/api/sessions/${id}/events?after=${after}`, {
+  const response = await fetch(`${apiOrigin}/api/sessions/${id}/events?after=${after}`, {
     headers: { Authorization: `Bearer ${token}` }, signal,
   })
   if (!response.ok || !response.body) throw new Error('Live connection interrupted')
